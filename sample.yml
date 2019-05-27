@@ -1,0 +1,27 @@
+version: '2'
+services:
+    elis_recovery_service_service:
+        build:
+            context: ../../.
+            dockerfile: docker/local/Dockerfile
+        image: elis_recovery_service_service:deploy-test-1
+        ports:
+            - "3000:3000"
+        networks:
+            recovery-service-net:
+                aliases:
+                    - service
+        command: ["./entrypoint.sh"]
+    activemq:
+        image: nexus-nonprod-gss.uscis.dhs.gov:18443/centos-activemq:latest
+        ports:
+            - "61616:61616"
+            - "8161:8161"
+        environment:
+            - ACTIVEMQ_ENABLED_AUTH=false
+        networks:
+            recovery-service-net:
+                aliases:
+                    - activemq
+networks:
+        recovery-service-net:
