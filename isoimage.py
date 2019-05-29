@@ -5,12 +5,17 @@ import pathlib
 import zipfile
 import shutil
 import tarfile
+import errno
 
 
 # Read YAML file
 def main(argv):
     command_name = 'mkisofs'
     target_directory = 'target'
+
+    if sys.version_info[0] != 3 or sys.version_info[1] < 6:
+        print("This script requires Python version 3.6+")
+        sys.exit(1)
 
     with open(argv[0]) as stream:
         if not (does_file_exists(argv[0])):
@@ -26,24 +31,26 @@ def main(argv):
             return 1
         # print the read file
         print(" Statred Processing :"+sys.argv[1])
+        # validate yaml file before processing
+        validate_yaml_file(data_loaded)
         # print(data_loaded)
         mkdir_p(target_directory)
 
         # get_iso_package_name(data_loaded,packages);
         image_name = 'default.iso'
-        image_type = 'iso'
+        # image_type = 'iso'
         structure = {}
         for row in data_loaded.get('packages'):
             if 'structure' in row:
-                image_name = row.get('name')
-                image_type = row.get('type')
+                # image_name = row.get('name')
+                # image_type = row.get('type')
                 # print('Image name:', image_name)
                 # print('Image type:', image_type)
                 structure = row.get('structure')
                 for files_row in structure.get('files'):
                     if 'file' in files_row:
                         file_name = files_row.get('file')
-                        unarhive = files_row.get('unarchive')
+                        # unarhive = files_row.get('unarchive')
                         py = pathlib.Path().glob(file_name)
                         for file in py:
                             shutil.copy2(file, target_directory)
@@ -64,11 +71,10 @@ def create_destination_directory(parent_dir, subdir):
     # print('Subdirectory:',subdir)
     # print('Parent:',parent_dir)
     if(parent_dir is not None):
-        destination = get_destination_directory_name(target_directory,
-            parent_dir)
-        destination = get_destination_directory_name(destination, subdir)
+        destination = get_dest_dir_name(target_directory, parent_dir)
+        destination = get_dest_dir_name(destination, subdir)
     else:
-        destination = get_destination_directory_name(target_directory, subdir)
+        destination = get_dest_dir_name(target_directory, subdir)
     mkdir_p(destination)
     return destination
 
@@ -92,7 +98,7 @@ def process_subdir(subdirs_row, parent_dir):
             # print('Processsing file_name:',file_name)
             # print('should Unarchive:',unarhive)
             if unarhive:
-                unarhive_file_to_destination(destination, file_name)
+                unarchive_file_to_destination(destination, file_name)
             else:
                 # print('Copy file to destination')
                 py = pathlib.Path().glob(file_name)
@@ -100,7 +106,43 @@ def process_subdir(subdirs_row, parent_dir):
                     shutil.copy2(file, destination)
 
 
-def unarhive_file_to_destination(destination, file_name):
+def validate_subdir(subdirs_row):
+    # print('Validating',subdirs_row)
+    if "subdirs" in subdirs_row:
+        if(subdirs_row.get('subdirs') is not None):
+            for sub_subdirs_row in subdirs_row.get('subdirs'):
+                # print('Validating',subdirs_row.get('subdirs'))
+                validate_subdir(sub_subdirs_row)
+
+    if 'files' in subdirs_row:
+        for files_row in subdirs_row.get('files'):
+            file_name = files_row.get('file')
+            # print('Validating',file_name)
+            if not does_file_exists(file_name):
+                print("Does not found file:", file_name)
+                sys.exit(1)
+
+
+def validate_yaml_file(data_loaded):
+    for row in data_loaded.get('packages'):
+        if 'structure' in row:
+            structure = row.get('structure')
+            for files_row in structure.get('files'):
+                if 'file' in files_row:
+                    py = pathlib.Path().glob(files_row.get('file'))
+                    for file in py:
+                        # print('Checking file:',file)
+                        if not does_file_exists(str(file)):
+                            print("Does not found file:", (str(file)))
+                            sys.exit(1)
+                for subdirs_row in structure.get('subdirs'):
+                    validate_subdir(subdirs_row)
+        else:
+            print(' The file should have structure element')
+            sys.exit(1)
+
+
+def unarchive_file_to_destination(destination, file_name):
     print('unarchive the files to destination:', destination)
     if (does_file_exists(file_name) and zipfile.is_zipfile(file_name)):
         extract_zip_file(file_name, destination)
@@ -111,13 +153,13 @@ def unarhive_file_to_destination(destination, file_name):
 
 
 def does_file_exists(name):
-    if os.path.exists(name) and os.path.getsize(name) > 0:
+    if os.path.exists(name):
         return True
     else:
         return False
 
 
-def get_destination_directory_name(destination, subdir):
+def get_dest_dir_name(destination, subdir):
     return destination+str(os.sep)+subdir
 
 
