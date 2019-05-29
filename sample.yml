@@ -1,27 +1,31 @@
-version: '2'
-services:
-    elis_recovery_service_service:
-        build:
-            context: ../../.
-            dockerfile: docker/local/Dockerfile
-        image: elis_recovery_service_service:deploy-test-1
-        ports:
-            - "3000:3000"
-        networks:
-            recovery-service-net:
-                aliases:
-                    - service
-        command: ["./entrypoint.sh"]
-    activemq:
-        image: nexus-nonprod-gss.uscis.dhs.gov:18443/centos-activemq:latest
-        ports:
-            - "61616:61616"
-            - "8161:8161"
-        environment:
-            - ACTIVEMQ_ENABLED_AUTH=false
-        networks:
-            recovery-service-net:
-                aliases:
-                    - activemq
-networks:
-        recovery-service-net:
+packages:
+  - name: "customer.iso"
+    type: "iso"
+    structure:
+      files:
+        - file: "artifacts/*.MD"
+          unarchive: false
+      subdirs:
+        - subdir: "src"
+          files:
+            - file: "artifacts/source_code.tar.gz"
+              unarchive: true
+        - subdir: "bin"
+          files:
+            - file: "artifacts/binary1.zip"
+              unarchive: false
+            - file: "artifacts/binary2.tar"
+              unarchive: false
+          subdirs:
+            - subdir: "deps" # deps subdir is present, but empty
+        - subdir: "docs"
+          files:
+            - file: "artifacts/binary1_docs.zip"
+              unarchive: true
+          subdirs:
+            - subdir: "logs"
+              files: 
+                - file: "logs/ci-cd_pipeline_output.log"
+                  unarchive: false
+              subdirs:
+                # no nested subdirs inside this one, but there could be in others
