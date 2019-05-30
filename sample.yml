@@ -1,0 +1,31 @@
+packages:
+  - name: "customer.iso"
+    type: "iso"
+    structure:
+      files:
+        - file: "artifacts/*.MD"
+          unarchive: false
+      subdirs:
+        - subdir: "src"
+          files:
+            - file: "artifacts/source_code.tar.gz"
+              unarchive: true
+        - subdir: "bin"
+          files:
+            - file: "artifacts/binary1.zip"
+              unarchive: false
+            - file: "artifacts/binary2.tar"
+              unarchive: false
+          subdirs:
+            - subdir: "deps" # deps subdir is present, but empty
+        - subdir: "docs"
+          files:
+            - file: "artifacts/binary1_docs.zip"
+              unarchive: true
+          subdirs:
+            - subdir: "logs"
+              files: 
+                - file: "logs/ci-cd_pipeline_output.log"
+                  unarchive: false
+              subdirs:
+                # no nested subdirs inside this one, but there could be in others
